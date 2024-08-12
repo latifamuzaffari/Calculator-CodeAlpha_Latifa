@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculator</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #e0e0e0;
+        font-family: "Roboto", sans-serif;
+      }
+
+      .calculator {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0px 0px 20px 0px #0003;
+        width: 350px;
+        background-color: #fff;
+      }
+
+      .calculator-screen {
+        width: 100%;
+        height: 80px;
+        background-color: hsl(35, 87%, 9%);
+        border: none;
+        color: white;
+        text-align: center;
+        padding: 20px;
+        font-size: 2.5em;
+      }
+
+      .calculator-keys {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background-color: hsl(35, 87%, 9%);
+      }
+
+      button {
+        height: 80px;
+        font-size: 1.5em;
+        border: none;
+        cursor: pointer;
+        outline: none;
+        background-color: white;
+        transition: background-color 0.3s ease-in-out;
+      }
+
+      button:hover {
+        background-color: #f0f0f0;
+      }
+
+      .operator {
+        background-color: hsl(35, 87%, 9%);
+        color: white;
+      }
+
+      .operator:hover {
+        background-color: hsl(35, 87%, 9%);
+      }
+
+      .equal-sign {
+        grid-column: span 4;
+        background-color: hsl(35, 87%, 9%);
+        color: white;
+      }
+
+      .equal-sign:hover {
+        background-color: hsl(35, 87%, 9%);
+      }
+
+      .all-clear {
+        background-color: #d4d4d2;
+      }
+
+      .all-clear:hover {
+        background-color: #e6e6e6;
+      }
+
+      .decimal {
+        background-color: #d4d4d2;
+      }
+
+      .decimal:hover {
+        background-color: #e6e6e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="calculator">
+      <input type="text" class="calculator-screen" value="0" disabled />
+      <div class="calculator-keys">
+        <button type="button" value="1">1</button>
+        <button type="button" value="2">2</button>
+        <button type="button" value="3">3</button>
+        <button type="button" class="operator" value="+">+</button>
+
+        <button type="button" value="4">4</button>
+        <button type="button" value="5">5</button>
+        <button type="button" value="6">6</button>
+        <button type="button" class="operator" value="-">-</button>
+
+        <button type="button" value="7">7</button>
+        <button type="button" value="8">8</button>
+        <button type="button" value="9">9</button>
+        <button type="button" class="operator" value="*">&times;</button>
+
+        <button type="button" class="all-clear" value="all-clear">AC</button>
+        <button type="button" value="0">0</button>
+        <button type="button" class="decimal" value=".">.</button>
+        <button type="button" class="operator" value="/">&divide;</button>
+
+        <button type="button" class="equal-sign operator" value="=">=</button>
+      </div>
+    </div>
+    <script>
+      const calculator = {
+        displayValue: "0",
+        firstOperand: null,
+        waitingForSecondOperand: false,
+        operator: null,
+        expression: "",
+      };
+
+      function updateDisplay() {
+        const display = document.querySelector(".calculator-screen");
+        display.value = calculator.expression || calculator.displayValue;
+      }
+
+      updateDisplay();
+
+      const keys = document.querySelector(".calculator-keys");
+      keys.addEventListener("click", (event) => {
+        const { target } = event;
+        const { value } = target;
+        if (!target.matches("button")) {
+          return;
+        }
+
+        switch (value) {
+          case "+":
+          case "-":
+          case "*":
+          case "/":
+          case "=":
+            handleOperator(value);
+            break;
+          case ".":
+            inputDecimal(value);
+            break;
+          case "all-clear":
+            resetCalculator();
+            break;
+          default:
+            if (Number.isInteger(parseFloat(value))) {
+              inputDigit(value);
+            }
+        }
+
+        updateDisplay();
+      });
+
+      function inputDigit(digit) {
+        const { displayValue, waitingForSecondOperand } = calculator;
+
+        if (waitingForSecondOperand) {
+          calculator.displayValue = digit;
+          calculator.waitingForSecondOperand = false;
+        } else {
+          calculator.displayValue =
+            displayValue === "0" ? digit : displayValue + digit;
+        }
+
+        calculator.expression += digit;
+      }
+
+      function inputDecimal(dot) {
+        if (calculator.waitingForSecondOperand) {
+          calculator.displayValue = "0.";
+          calculator.waitingForSecondOperand = false;
+          return;
+        }
+
+        if (!calculator.displayValue.includes(dot)) {
+          calculator.displayValue += dot;
+        }
+
+        calculator.expression += dot;
+      }
+
+      function handleOperator(nextOperator) {
+        const { firstOperand, displayValue, operator } = calculator;
+        const inputValue = parseFloat(displayValue);
+
+        if (operator && calculator.waitingForSecondOperand) {
+          calculator.operator = nextOperator;
+          calculator.expression =
+            calculator.expression.slice(0, -1) + nextOperator;
+          return;
+        }
+
+        if (firstOperand == null) {
+          calculator.firstOperand = inputValue;
+        } else if (operator) {
+          const currentValue = firstOperand || 0;
+          const result = performCalculation[operator](currentValue, inputValue);
+
+          calculator.displayValue = `${parseFloat(result.toFixed(7))}`;
+          calculator.firstOperand = result;
+          calculator.expression = `${result}`;
+        }
+
+        calculator.waitingForSecondOperand = true;
+        calculator.operator = nextOperator;
+
+        if (nextOperator !== "=") {
+          calculator.expression += nextOperator;
+        }
+      }
+
+      const performCalculation = {
+        "/": (firstOperand, secondOperand) => firstOperand / secondOperand,
+        "*": (firstOperand, secondOperand) => firstOperand * secondOperand,
+        "+": (firstOperand, secondOperand) => firstOperand + secondOperand,
+        "-": (firstOperand, secondOperand) => firstOperand - secondOperand,
+        "=": (firstOperand, secondOperand) => secondOperand,
+      };
+
+      function resetCalculator() {
+        calculator.displayValue = "0";
+        calculator.firstOperand = null;
+        calculator.waitingForSecondOperand = false;
+        calculator.operator = null;
+        calculator.expression = "";
+      }
+    </script>
+  </body>
+</html>
